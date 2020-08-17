@@ -1,0 +1,8 @@
+[Unit]
+Description=Hourly refresh of singlerss
+
+[Timer]
+OnCalendar=hourly
+ 
+[Install]
+WantedBy=timers.target
