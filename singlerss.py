@@ -6,7 +6,6 @@
 import os
 import sys
 import feedparser
-import listparser
 import logging
 from feedgen.feed import FeedGenerator
 
