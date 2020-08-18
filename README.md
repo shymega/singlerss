@@ -1,6 +1,8 @@
 singlerss
 =========
 
+[![GitHub release](https://img.shields.io/github/release/shymega/singlerss.svg)](https://GitHub.com/shymega/singlerss/releases/)
+
 # Description
 
 singlerss combines all feeds described in a OPML file into one feed. This can

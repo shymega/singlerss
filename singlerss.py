@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+# singlerss - v1.0.0
 # Copyright (c) Dom Rodriguez 2020
 # Licensed under the Apache License 2.0
 
