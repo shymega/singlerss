@@ -7,14 +7,20 @@ import os
 import sys
 import feedparser
 import logging
+import listparser
+from os import environ
 from feedgen.feed import FeedGenerator
+import json
 
 log = None
+LOG_LEVEL = environ.get("SR_LOG_LEVEl", "ERROR")
 fg = None
 FEED_OUT_PATH = None
 FEED_OUT_TYPE = None
 FEED_LIST_PATH = None
 FEEDS = []
+CFG = None
+
 
 
 def setup_logging() -> None:
@@ -23,14 +29,12 @@ def setup_logging() -> None:
     """
     global log
 
-    log = logging.getLogger("singlerss")
-    out_handler = logging.StreamHandler(sys.stderr)
-    out_handler.setFormatter(
-        logging.Formatter(
-            '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
-        ))
-    log.addHandler(out_handler)
-    log.setLevel(logging.ERROR)
+    log = logging.getLogger(__name__)
+    log.setLevel(LOG_LEVEL)
+    ch = logging.StreamHandler(sys.stderr)
+    ch.setLevel(LOG_LEVEL)
+    ch.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    log.addHandler(ch)
 
     return None
 
@@ -69,11 +73,8 @@ def parse_rss_feed(url) -> feedparser.FeedParserDict:
         # Hopefully this should parse..
         return feedparser.parse(url)
     except Exception:
-        log.warninging("Failed to parse RSS feed.")
+        log.warning("Failed to parse RSS feed.")
         # Now, we could handle gracefully.
-        # This code is a WIP, but maybe we shouldn't crash?
-        log.warninging("Cannot continue, we want all the feeds to work!")
-        sys.exit(1)
 
 
 def main():
