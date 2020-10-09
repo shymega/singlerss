@@ -8,12 +8,12 @@ import sys
 import feedparser
 import logging
 import listparser
+import argparse
 from os import environ
 from feedgen.feed import FeedGenerator
 import json
 
 log = None
-LOG_LEVEL = environ.get("SR_LOG_LEVEl", "ERROR")
 fg = None
 FEED_OUT_PATH = None
 FEED_OUT_TYPE = None
@@ -29,6 +29,8 @@ def setup_logging() -> None:
     """
     global log
 
+    LOG_LEVEL = environ.get("SR_LOG_LEVEl", "ERROR")
+    LOG_LEVEL = "DEBUG"
     log = logging.getLogger(__name__)
     log.setLevel(LOG_LEVEL)
     ch = logging.StreamHandler(sys.stderr)
@@ -51,10 +53,10 @@ def init_feed() -> None:
     try:
         fg = FeedGenerator()
         # Setup [root] feed attributes
-        fg.id("https://rss.shymega.org.uk/feed.xml")
-        fg.title("SingleRSS - Combined Feed")
-        fg.generator("SingleRSS/v1.0.0")
-        fg.link(href="https:/rss.shymega.org.uk/feed.xml", rel="self")
+        fg.id("https://www.dagzure.com/dynamics_feed.xml")
+        fg.title("Dynamics 365 Feeds")
+        fg.generator("SingleRSS/v1.0.1")
+        fg.link(href="https://www.dagzure.com/dynamics_feed.xml", rel="self")
         fg.subtitle("Combined feed for RSS feeds")
         fg.language('en')
     except:
@@ -73,8 +75,7 @@ def parse_rss_feed(url) -> feedparser.FeedParserDict:
         # Hopefully this should parse..
         return feedparser.parse(url)
     except Exception:
-        log.warning("Failed to parse RSS feed.")
-        # Now, we could handle gracefully.
+        log.warning("Failed to parse RSS feed: " + url)
 
 
 def main():
@@ -89,6 +90,7 @@ def main():
 
     log.debug("Iterating over [input] feeds...")
     for feed in FEEDS:
+        log.debug("  " + feed)
         rss = parse_rss_feed(feed)
         entries = rss.get("entries")
         log.debug("Iterating over [input] feed entries..")
@@ -181,32 +183,36 @@ if __name__ == "__main__":
     log.debug("Initialising...")
 
     log.debug("Assiging variables..")
+    default_FEED_OUT_PATH = None
+    default_FEED_LIST_PATH = ''
+    default_FEED_OUT_TYPE = None
+
     try:
-        # Configuration is specified with environemnt variables.
-        log.debug("Assignment attempt: SINGLERSS_FEED_OUT_PATH")
-        FEED_OUT_PATH = os.environ["SINGLERSS_FEED_OUT_PATH"]
+        default_FEED_OUT_PATH = os.environ["SINGLERSS_FEED_OUT_PATH"]
     except KeyError:
-        log.error("*** Environment variable missing! ***")
-        log.error("`SINGLERSS_FEED_OUT_PATH` variable missing.")
-        log.error("This program will NOT run without that set.")
-        sys.exit(1)
+        log.debug("`SINGLERSS_FEED_OUT_PATH` environment variable missing.")
 
     try:
-        FEED_LIST_PATH = os.environ["SINGLERSS_FEED_LIST_PATH"]
-    except:
-        log.error("*** Environment variable missing! ***")
-        log.error("`SINGLERSS_FEED_LIST_PATH` variable missing.")
-        sys.exit(1)
-
-    try:
-        FEED_OUT_TYPE = os.environ["SINGLERSS_FEED_OUT_TYPE"]
+        default_FEED_LIST_PATH = os.environ["SINGLERSS_FEED_LIST_PATH"]
     except KeyError:
-        log.error("*** Environment variable missing! ***")
-        log.error("`SINGLERSS_FEED_OUT_TYPE` variable missing.")
-        log.error("This program will NOT run without that set.")
-        sys.exit(1)
+        log.debug("`SINGLERSS_FEED_LIST_PATH` environment variable missing.")
 
-    log.debug("Begin initialising variables..")
+    try:
+        default_FEED_OUT_TYPE = os.environ["SINGLERSS_FEED_OUT_TYPE"]
+    except KeyError:
+        log.debug("`SINGLERSS_FEED_OUT_TYPE` environment variable missing.")
+
+    parser = argparse.ArgumentParser(description='Consolidate RSS feeds.',epilog='All arguments can be specified in the command line or the environment variables.')
+    parser.add_argument('feed_list_path', type=str, help="The path to the OPML file containing the list of feeds to consolidate.", default=default_FEED_LIST_PATH)
+    parser.add_argument('feed_out_type', choices=['file', 'stdout'], help="How should the output be directed?  stdout or file", default=default_FEED_OUT_TYPE)
+    parser.add_argument('feed_out_path', type=str, help="The path to save the consolidated RSS file when the output type is 'file'.", default=default_FEED_OUT_PATH)
+    args = parser.parse_args()
+
+    FEED_OUT_PATH = args.feed_out_path
+    FEED_LIST_PATH = args.feed_list_path
+    FEED_OUT_TYPE = args.feed_out_type
+
+    log.debug("Begin initialising variables...")
     init_feed()
 
     log.debug("Begin processing feeds...")
@@ -216,7 +222,7 @@ if __name__ == "__main__":
         log.debug("stdout output specified, outputting to stdout.")
         print(fg.rss_str().decode('utf-8'))
     elif FEED_OUT_TYPE == "file":
-        log.debug("File output specified, outputting to specified file..")
+        log.debug("File output specified, outputting to specified file...")
         fg.rss_file(FEED_OUT_PATH)
     else:
         log.error("Unknown type of output preference, cannot run.")

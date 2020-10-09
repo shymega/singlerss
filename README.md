@@ -11,7 +11,7 @@ and configured by the environment variables.
 
 SingleRSS is configured by environment variables.
 
-See `.env.sample`. You _must_ copy `.env.sample` to `.env`.
+See `.env.sample`. You _must_ copy `.env.sample` to `.env` if using Docker.
 
 `SINGLERSS_FEED_OUT_PATH` defines the relative OR absolute path to output the
 feed to, _IF_ `SINGLERSS_FEED_OUT_TYPE` is set to `file`. If
@@ -33,5 +33,6 @@ cannot offer support for it.
 This program is [licensed][license] under the Apache License 2.0.
 
 Copyright (c) Dom Rodriguez (shymega) 2020.
+Modified by Dag Calafell, III
 
 [license]: /LICENSE
