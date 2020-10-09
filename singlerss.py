@@ -30,7 +30,6 @@ def setup_logging() -> None:
     global log
 
     LOG_LEVEL = environ.get("SR_LOG_LEVEl", "ERROR")
-    LOG_LEVEL = "DEBUG"
     log = logging.getLogger(__name__)
     log.setLevel(LOG_LEVEL)
     ch = logging.StreamHandler(sys.stderr)
