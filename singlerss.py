@@ -7,25 +7,22 @@ import os
 import sys
 import feedparser
 import logging
-import listparser
 from os import environ
 from feedgen.feed import FeedGenerator
-import json
 
 log = None
-LOG_LEVEL = environ.get("SR_LOG_LEVEl", "ERROR")
+LOG_LEVEL = environ.get("SR_LOG_LEVEL", "ERROR")
 fg = None
 FEED_OUT_PATH = None
 FEED_OUT_TYPE = None
 FEED_LIST_PATH = None
 FEEDS = []
-CFG = None
 
 
 
 def setup_logging() -> None:
     """
-    This function intiialises the logger framework.
+    This function intialises the logger framework.
     """
     global log
 
@@ -44,73 +41,76 @@ def init_feed() -> None:
     This function initialises the RSS feed with the
     correct attributes.
     """
-    log.debug("Initialising the feed...")
+    log.debug("Initialising the output feed...")
 
     global fg
 
     try:
         fg = FeedGenerator()
         # Setup [root] feed attributes
-        fg.id("https://rss.shymega.org.uk/feed.xml")
+        fg.id("https://rss.example.com")
         fg.title("SingleRSS - Combined Feed")
         fg.generator("SingleRSS/v1.0.0")
-        fg.link(href="https:/rss.shymega.org.uk/feed.xml", rel="self")
+        fg.link(href="https://rss.example.com", rel="self")
         fg.subtitle("Combined feed for RSS feeds")
         fg.language('en')
     except:
-        log.error("Error initialising the feed!")
+        log.error("Error initialising the output feed!")
         sys.exit(1)
 
-    log.debug("Feed initialised!")
+    log.debug("Output feed initialised!")
 
     return None
 
 
-def parse_rss_feed(url) -> feedparser.FeedParserDict:
-    log.debug("Parsing RSS feed..")
+def parse_feed(url) -> feedparser.FeedParserDict:
+    log.debug("Parsing input RSS/Atom feed..")
 
-    try:
-        # Hopefully this should parse..
-        return feedparser.parse(url)
-    except Exception:
-        log.warning("Failed to parse RSS feed.")
-        # Now, we could handle gracefully.
+    feed = feedparser.parse(url)
+
+    if feed.bozo:
+        log.warning("Parsing RSS/Atom feed encountered an error: {err}".format(err=str(feed.bozo_exception)))
+        return feed # return anyway, it may still be partially readable...
+
+    if feed is None:
+        log.warning("No value from feedparser. Unusual error, please report.")
+        return None
+
+    return feed
 
 
 def main():
-    log.debug("Loading feed list into memory..")
     feeds = None
     with open(FEED_LIST_PATH, "r") as infile:
         feeds = infile.read().splitlines()
 
-    log.debug("Iterating over feed list..")
     for feed in feeds:
         FEEDS.append(feed)
 
-    log.debug("Iterating over [input] feeds...")
     for feed in FEEDS:
-        rss = parse_rss_feed(feed)
+        rss = parse_feed(feed)
+
+        if not rss:
+            log.warning("Error detected during feed parsing process. Feed: {feed}".format(feed=feed))
+            continue
+
+
+        log.info("Processing feed: {feed}".format(feed=feed))
         entries = rss.get("entries")
-        log.debug("Iterating over [input] feed entries..")
+
         for entry in entries:
-            log.debug("New feed entry created.")
-
             fe = fg.add_entry()
-
-            log.debug("Working on new feed entry..")
 
             try:
                 fe.id(entry["id"])
             except:
-                # Deifnitely weird...
-                log.warning("Empty id attribute, defaulting..")
+                # Definitely weird...
                 fe.id("about:blank")
 
             try:
                 fe.title(entry["title"])
             except:
-                # OK, this is a definite malformed feed!
-                log.warning("Empty title attribute, defaulting..")
+                # OK, this is a definititive malformed feed entry.
                 fe.title("Unspecified")
 
             try:
@@ -118,7 +118,6 @@ def main():
             except:
                 # When we have a empty link attribute, this isn't ideal
                 # to set a default value.. :/
-                log.warning("Empty link attribute, defaulting..")
                 fe.link(href='about:blank')
 
             try:
@@ -126,18 +125,11 @@ def main():
                     for author in entry["sources"]["authors"]:
                         fe.author(author)
                 elif entry["authors"]:
-                    try:
-                        for author in entry["authors"]:
-                            fe.author(author)
-                    except:
-                        log.debug("Oh dear, a malformed feed! Adjusting.")
-                        # This is a ugly hack to fix broken feed entries with the author attribute!
-                        author["email"] = author.pop("href")
+                    for author in entry["authors"]:
                         fe.author(author)
             except:
                 # Sometimes we don't have ANY author attributes, so we
                 # have to set a dummy attribute.
-                log.warning("Empty authors attribute, defaulting..")
                 fe.author({"name": "Unspecified",
                            "email": "unspecified@example.com"})
 
@@ -154,8 +146,6 @@ def main():
                 # have to set an empty value.
                 # This is pretty useless for a feed, so hopefully we
                 # don't have to do it often!
-                log.warning(
-                    "Empty description OR summary attribute, defaulting..")
                 fe.description("Unspecified")
                 fe.summary("Unspecified")
 
@@ -165,51 +155,43 @@ def main():
                         fe.published(entry["published"])
                         fe.updated(entry["published"])
                     except:
-                        fe.published("1970-01/01T00:00:00+00:00")
-                        fe.updated("1970-01/01T00:00:00+00:00")
+                        fe.published("1970-01-01T00:00:00+00:00")
+                        fe.updated("1970-01-01T00:00:00+00:00")
                         continue
             except:
                 # Sometimes feeds don't even provide a publish date, so we default to
                 # the start date &time of the Unix epoch.
-                log.warning("Empty publish attribute, defaulting..")
-                fe.published("1970-01/01T00:00:00+00:00")
-                fe.updated("1970-01/01T00:00:00+00:00")
+                fe.published("1970-01-01T00:00:00+00:00")
+                fe.updated("1970-01-01T00:00:00+00:00")
 
 
 if __name__ == "__main__":
     setup_logging()
-    log.debug("Initialising...")
 
-    log.debug("Assiging variables..")
+    log.debug("Starting up..")
+
     try:
         # Configuration is specified with environemnt variables.
         log.debug("Assignment attempt: SINGLERSS_FEED_OUT_PATH")
         FEED_OUT_PATH = os.environ["SINGLERSS_FEED_OUT_PATH"]
     except KeyError:
-        log.error("*** Environment variable missing! ***")
-        log.error("`SINGLERSS_FEED_OUT_PATH` variable missing.")
-        log.error("This program will NOT run without that set.")
+        log.error("`SINGLERSS_FEED_OUT_PATH` variable missing, can't run.")
         sys.exit(1)
 
     try:
         FEED_LIST_PATH = os.environ["SINGLERSS_FEED_LIST_PATH"]
     except:
-        log.error("*** Environment variable missing! ***")
-        log.error("`SINGLERSS_FEED_LIST_PATH` variable missing.")
+        log.error("`SINGLERSS_FEED_LIST_PATH` variable missing, can't run.")
         sys.exit(1)
 
     try:
         FEED_OUT_TYPE = os.environ["SINGLERSS_FEED_OUT_TYPE"]
     except KeyError:
-        log.error("*** Environment variable missing! ***")
-        log.error("`SINGLERSS_FEED_OUT_TYPE` variable missing.")
-        log.error("This program will NOT run without that set.")
+        log.error("`SINGLERSS_FEED_OUT_TYPE` variable missing, can't run.")
         sys.exit(1)
 
-    log.debug("Begin initialising variables..")
     init_feed()
 
-    log.debug("Begin processing feeds...")
     main()
 
     if FEED_OUT_TYPE == "stdout":
