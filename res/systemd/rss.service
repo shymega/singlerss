@@ -11,7 +11,7 @@ Group=nobody
 
 # Make sure to customise these to your
 # system!
-WorkingDirectory=/var/www/html/feed.xml
+WorkingDirectory=/var/www/html/
 # And this.
 EnvironmentFile=/opt/singlerss/.env
 # And this.
