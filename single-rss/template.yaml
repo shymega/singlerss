@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Sample SAM Template for single.rss
+
+Globals:
+  Function:
+    Timeout: 30
+
+Resources:
+  SingleRssFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      PackageType: Image
+      Architectures:
+        - x86_64
+      Events:
+        SingleRssRefresh:
+          Type: Api
+          Properties:
+            Path: /refresh
+            Method: POST
+        SingleRssAccess:
+            Type: Api
+            Properties:
+              Path: /access
+              Method: GET
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: ./single-rss
+      DockerTag: python3.9-v1
