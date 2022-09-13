@@ -1,6 +1,13 @@
 singlerss
 =========
 
+# CURRENT STATUS
+
+I have joined forces with [@tanrax][] on their [RSSingle][] fork of this
+project. Check out that project for my involvement.
+
+`singlerss` is now to be considered unmaintained, and archived.
+
 # Description
 
 singlerss combines all feeds described in a OPML file into one feed. This can
@@ -9,7 +16,7 @@ and configured by the environment variables.
 
 # Configuration
 
-SingleRSS is configured by environment variables.
+singlesrs is configured by environment variables.
 
 See `.env.sample`. You _must_ copy `.env.sample` to `.env`.
 
@@ -34,4 +41,7 @@ This program is [licensed][license] under the Apache License 2.0.
 
 Copyright (c) Dom Rodriguez (shymega) 2020.
 
+[@tanrax]: https://github.com/tanrax
+[RSSingle]: https://github.com/tanrax/RSSingle.git
 [license]: /LICENSE
+
